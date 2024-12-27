@@ -10,7 +10,7 @@ int32_t dtag_init(dblock_t **block, uint8_t *buf, uint32_t len) {
   dblock_t *_block = (dblock_t *)buf;
   _block->magic = DTAG_MAGIC;
   _block->version = DTAG_VERSION;
-  _block->capacity = len;
+  _block->capacity = len - sizeof(dblock_t);
   _block->length = 0;
   *block = _block;
   return DTAG_OK;
@@ -30,7 +30,7 @@ int32_t dtag_import(dblock_t **block, uint8_t *buf, uint32_t len) {
   if (_block->length > len - sizeof(dblock_t)) {
     return DTAG_ERR_LENGTH;
   }
-  if (_block->capacity > len) {
+  if (_block->capacity > len - sizeof(dblock_t)) {
     return DTAG_WRAN_CAPACITY;
   }
   uint8_t _chksum[CHKSUM_LENGTH];
@@ -78,7 +78,8 @@ int32_t dtag_export_file(dblock_t *block, const char *filename) {
   if (!file) {
     return DTAG_ERR_DATA;
   }
-  if (fwrite(block, 1, block->capacity, file) != block->capacity) {
+  uint32_t len = block->capacity + sizeof(dblock_t);
+  if (fwrite(block, 1, len, file) != len) {
     fclose(file);
     return DTAG_ERR_DATA;
   }
@@ -119,13 +120,12 @@ int32_t dtag_del(dblock_t *block, dtag_t tag) {
 int32_t dtag_set(dblock_t *block, dtag_t tag, uint32_t len, uint8_t *val) {
   const ditem_t *item = dtag_get(block, tag);
   if (item) {
-    if (block->length + sizeof(dblock_t) - item->len + len > block->capacity) {
+    if (block->length - item->len + len > block->capacity) {
       return DTAG_ERR_CAPACITY;
     }
     _dtag_del(block, item);
   } else {
-    if (block->length + sizeof(dblock_t) + sizeof(ditem_t) + len >
-        block->capacity) {
+    if (block->length + sizeof(ditem_t) + len > block->capacity) {
       return DTAG_ERR_CAPACITY;
     }
   }

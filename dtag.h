@@ -41,7 +41,7 @@ struct dtag_block {
   uint32_t magic;
 #define DTAG_VERSION 0x01
   uint32_t version;
-  // The capacity of the block in bytes.
+  // The capacity of the data in bytes.
   uint32_t capacity;
   // The length of the data in bytes.
   uint32_t length;

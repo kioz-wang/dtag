@@ -13,7 +13,7 @@ void test_dtag_init() {
   assert(block != NULL);
   assert(block->magic == DTAG_MAGIC);
   assert(block->version == DTAG_VERSION);
-  assert(block->capacity == sizeof(buffer));
+  assert(block->capacity == sizeof(buffer) - sizeof(dblock_t));
   assert(block->length == 0);
 }
 

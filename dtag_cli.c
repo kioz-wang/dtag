@@ -44,17 +44,17 @@ int subcmd_init(const char *filename, const char *tokens[]) {
     return EXIT_FAILURE;
   }
   uint32_t capc = strtoul(capa_str, NULL, 0);
-  if (capc == 0 || capc < sizeof(dblock_t)) {
+  if (capc == 0 || capc > UINT32_MAX - sizeof(dblock_t)) {
     print_error("Invalid capacity");
     return EXIT_FAILURE;
   }
-  uint8_t *buffer = (uint8_t *)malloc(capc);
+  uint8_t *buffer = (uint8_t *)malloc(capc + sizeof(dblock_t));
   if (!buffer) {
     print_error("Failed to allocate memory");
     return EXIT_FAILURE;
   }
   dblock_t *block = NULL;
-  if (dtag_init(&block, buffer, capc) != DTAG_OK) {
+  if (dtag_init(&block, buffer, capc + sizeof(dblock_t)) != DTAG_OK) {
     print_error("Failed to initialize dtag block");
     free(buffer);
     return EXIT_FAILURE;
@@ -64,13 +64,11 @@ int subcmd_init(const char *filename, const char *tokens[]) {
     free(buffer);
     return EXIT_FAILURE;
   }
-  FILE *file = fopen(filename, "wb");
-  if (!file) {
-    perror(COLOR_RED "Failed to open file for writing" COLOR_RESET);
+  if (dtag_export_file(block, filename) != DTAG_OK) {
+    print_error("Failed to export dtag block");
+    free(buffer);
     return EXIT_FAILURE;
   }
-  fwrite(buffer, 1, capc, file);
-  fclose(file);
   free(buffer);
   return EXIT_SUCCESS;
 }
@@ -234,7 +232,7 @@ int subcmd_hexdump(const char *filename) {
   }
 
   uint8_t *ptr = (uint8_t *)block;
-  uint32_t len = block->capacity;
+  uint32_t len = block->capacity + sizeof(dblock_t);
   int zero_line_count = 0;
 
   ditem_t *item = NULL;
@@ -295,8 +293,10 @@ int subcmd_hexdump(const char *filename) {
             printf(COLOR_YELLOW "%02x " COLOR_RESET, ptr[i + j]);
           }
         }
-      } else {
+      } else if (ptr + i + j < (uint8_t *)block->data + block->capacity) {
         printf("%02x ", ptr[i + j]);
+      } else {
+        printf("   ");
       }
     }
     printf(" |");
