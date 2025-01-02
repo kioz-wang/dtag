@@ -6,7 +6,6 @@
 
 enum dtag_error {
   DTAG_OK = 0,
-  DTAG_WRAN_CAPACITY = 1,
   DTAG_ERR_MAGIC = -1,
   DTAG_ERR_VERSION = -2,
   DTAG_ERR_CAPACITY = -3,

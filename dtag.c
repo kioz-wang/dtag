@@ -2,16 +2,50 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 int32_t dtag_init(dblock_t **block, uint8_t *buf, uint32_t len) {
   if (len < sizeof(dblock_t)) {
     return DTAG_ERR_CAPACITY;
   }
   dblock_t *_block = (dblock_t *)buf;
+
   _block->magic = DTAG_MAGIC;
   _block->version = DTAG_VERSION;
   _block->capacity = len - sizeof(dblock_t);
   _block->length = 0;
+  *block = _block;
+  return DTAG_OK;
+}
+
+static int32_t _dtag_import_check0(const dblock_t *block) {
+  if (block->magic != DTAG_MAGIC) {
+    return DTAG_ERR_MAGIC;
+  }
+  if (block->version != DTAG_VERSION) {
+    return DTAG_ERR_VERSION;
+  }
+  if (block->length > block->capacity) {
+    return DTAG_ERR_LENGTH;
+  }
+  return DTAG_OK;
+}
+
+static int32_t _dtag_import_check1(const dblock_t *block, uint32_t len) {
+  if (block->capacity > len - sizeof(dblock_t)) {
+    return DTAG_ERR_CAPACITY;
+  }
+  return DTAG_OK;
+}
+
+static int32_t _dtag_import_final(dblock_t **block, uint8_t *buf) {
+  dblock_t *_block = (dblock_t *)buf;
+  uint8_t _chksum[CHKSUM_LENGTH];
+
+  chksum_compute(_block->data, _block->length, _chksum);
+  if (memcmp(_chksum, _block->chksum, CHKSUM_LENGTH) != 0) {
+    return DTAG_ERR_CHECKSUM;
+  }
   *block = _block;
   return DTAG_OK;
 }
@@ -21,25 +55,16 @@ int32_t dtag_import(dblock_t **block, uint8_t *buf, uint32_t len) {
     return DTAG_ERR_CAPACITY;
   }
   dblock_t *_block = (dblock_t *)buf;
-  if (_block->magic != DTAG_MAGIC) {
-    return DTAG_ERR_MAGIC;
-  }
-  if (_block->version != DTAG_VERSION) {
-    return DTAG_ERR_VERSION;
-  }
-  if (_block->length > len - sizeof(dblock_t)) {
-    return DTAG_ERR_LENGTH;
-  }
-  if (_block->capacity > len - sizeof(dblock_t)) {
-    return DTAG_WRAN_CAPACITY;
-  }
-  uint8_t _chksum[CHKSUM_LENGTH];
-  chksum_compute(_block->data, _block->length, _chksum);
-  if (memcmp(_chksum, _block->chksum, CHKSUM_LENGTH) != 0) {
-    return DTAG_ERR_CHECKSUM;
-  }
-  *block = _block;
-  return DTAG_OK;
+  int32_t result = DTAG_OK;
+
+  if (result == DTAG_OK)
+    result = _dtag_import_check0(_block);
+  if (result == DTAG_OK)
+    result = _dtag_import_check1(_block, len);
+  if (result == DTAG_OK)
+    result = _dtag_import_final(block, buf);
+
+  return result;
 }
 
 int32_t dtag_complete(dblock_t *block) {
@@ -48,37 +73,73 @@ int32_t dtag_complete(dblock_t *block) {
 }
 
 int32_t dtag_import_file(dblock_t **block, const char *filename) {
-  FILE *file = fopen(filename, "rb");
-  if (!file) {
-    return DTAG_ERR_DATA;
+  uint32_t filesize = 0;
+  int32_t result = DTAG_OK;
+  struct stat st;
+  FILE *file = NULL;
+  dblock_t _block;
+  uint8_t *buf = NULL;
+
+  if (result == DTAG_OK) {
+    if (stat(filename, &st) != 0) {
+      result = DTAG_ERR_DATA;
+    }
   }
-  fseek(file, 0, SEEK_END);
-  uint32_t len = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  uint8_t *buf = (uint8_t *)malloc(len);
-  if (!buf) {
+  if (result == DTAG_OK) {
+    if ((filesize = st.st_size) < sizeof(dblock_t)) {
+      result = DTAG_ERR_CAPACITY;
+    }
+  }
+  if (result == DTAG_OK) {
+    if (!(file = fopen(filename, "rb"))) {
+      result = DTAG_ERR_DATA;
+    }
+  }
+  if (result == DTAG_OK) {
+    if (fread(&_block, 1, sizeof(dblock_t), file) != sizeof(dblock_t)) {
+      result = DTAG_ERR_DATA;
+    }
+  }
+  if (result == DTAG_OK) {
+    result = _dtag_import_check0(&_block);
+  }
+  if (result == DTAG_OK) {
+    result = _dtag_import_check1(&_block, filesize);
+  }
+  if (result == DTAG_OK) {
+    if (!(buf = (uint8_t *)malloc(_block.capacity + sizeof(dblock_t)))) {
+      result = DTAG_ERR_NOMEM;
+    }
+  }
+  if (result == DTAG_OK) {
+    memcpy(buf, &_block, sizeof(dblock_t));
+    if (fread(buf + sizeof(dblock_t), 1, _block.capacity, file) !=
+        _block.capacity) {
+      result = DTAG_ERR_DATA;
+    }
+  }
+  if (result == DTAG_OK) {
+    result = _dtag_import_final(block, buf);
+  }
+
+  if (file) {
     fclose(file);
-    return DTAG_ERR_NOMEM;
   }
-  if (fread(buf, 1, len, file) != len) {
-    fclose(file);
-    free(buf);
-    return DTAG_ERR_DATA;
-  }
-  fclose(file);
-  int32_t result = dtag_import(block, buf, len);
-  if (result != DTAG_OK) {
+  if (result != DTAG_OK && buf) {
     free(buf);
   }
   return result;
 }
 
 int32_t dtag_export_file(dblock_t *block, const char *filename) {
-  FILE *file = fopen(filename, "wb");
+  FILE *file = NULL;
+  uint32_t len = 0;
+
+  file = fopen(filename, "wb");
   if (!file) {
     return DTAG_ERR_DATA;
   }
-  uint32_t len = block->capacity + sizeof(dblock_t);
+  len = block->capacity + sizeof(dblock_t);
   if (fwrite(block, 1, len, file) != len) {
     fclose(file);
     return DTAG_ERR_DATA;
@@ -90,6 +151,7 @@ int32_t dtag_export_file(dblock_t *block, const char *filename) {
 const ditem_t *dtag_get(dblock_t *block, dtag_t tag) {
   uint8_t *ptr = block->data;
   uint8_t *end = ptr + block->length;
+
   while (ptr < end) {
     ditem_t *item = (ditem_t *)ptr;
     if (item->tag == tag) {
@@ -104,6 +166,7 @@ static void _dtag_del(dblock_t *block, const ditem_t *item) {
   uint8_t *ptr = (uint8_t *)item;
   uint8_t *end = block->data + block->length;
   uint32_t len = sizeof(ditem_t) + item->len;
+
   memmove(ptr, ptr + len, end - ptr - len);
   block->length -= len;
 }
