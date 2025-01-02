@@ -19,6 +19,8 @@ void print_usage(const char *prog_name) {
   printf("  dump                  - Dump the content of file\n");
   printf("  set {tag} {value} ... - Set tags with the given value\n");
   printf("  get {tag} ...         - Get the value of the given tags\n");
+  printf("  setf {tag} {file} ... - Set tags with the given files\n");
+  printf("  getf {tag} {file} ... - Get the given tags to files\n");
   printf("  del {tag} ...         - Delete the given tags\n");
   printf("  hexdump               - Dump the content like hexdump -C\n");
 }
@@ -115,8 +117,8 @@ int subcmd_set(const char *filename, const char *tokens[]) {
   while (token_iter_top(&it)) {
     const char *tag_str = token_iter_pop(&it);
     const char *value_str = token_iter_pop(&it);
-    if (!tag_str || !value_str) {
-      print_error("Missing tag or value");
+    if (!value_str) {
+      print_error("Missing  value");
       free(block);
       return EXIT_FAILURE;
     }
@@ -165,11 +167,6 @@ int subcmd_get(const char *filename, const char *tokens[]) {
   token_iter_init(&it, tokens);
   while (token_iter_top(&it)) {
     const char *tag_str = token_iter_pop(&it);
-    if (!tag_str) {
-      print_error("Missing tag");
-      free(block);
-      return EXIT_FAILURE;
-    }
     dtag_t tag = strtoul(tag_str, NULL, 0);
     const ditem_t *item = dtag_get(block, tag);
     if (item) {
@@ -178,6 +175,112 @@ int subcmd_get(const char *filename, const char *tokens[]) {
         printf("%02x ", item->val[i]);
       }
       printf("\n");
+    } else {
+      print_error("Tag not found");
+    }
+  }
+  free(block);
+  return EXIT_SUCCESS;
+}
+
+int subcmd_setf(const char *filename, const char *tokens[]) {
+  dblock_t *block = NULL;
+  int32_t ret = dtag_import_file(&block, filename);
+  if (ret != DTAG_OK) {
+    print_error("Failed to import dtag block");
+    return EXIT_FAILURE;
+  }
+  token_iter_t it;
+  token_iter_init(&it, tokens);
+  while (token_iter_top(&it)) {
+    const char *tag_str = token_iter_pop(&it);
+    const char *file = token_iter_pop(&it);
+    if (!file) {
+      print_error("Missing file");
+      free(block);
+      return EXIT_FAILURE;
+    }
+    dtag_t tag = strtoul(tag_str, NULL, 0);
+    FILE *f = fopen(file, "rb");
+    if (!f) {
+      print_error("Failed to open file");
+      free(block);
+      return EXIT_FAILURE;
+    }
+    fseek(f, 0, SEEK_END);
+    uint32_t len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    uint8_t *value = (uint8_t *)malloc(len);
+    if (!value) {
+      print_error("Failed to allocate memory");
+      fclose(f);
+      free(block);
+      return EXIT_FAILURE;
+    }
+    if (fread(value, 1, len, f) != len) {
+      print_error("Failed to read file");
+      fclose(f);
+      free(value);
+      free(block);
+      return EXIT_FAILURE;
+    }
+    if (dtag_set(block, tag, len, value) != DTAG_OK) {
+      print_error("Failed to set tag");
+      fclose(f);
+      free(value);
+      free(block);
+      return EXIT_FAILURE;
+    }
+    fclose(f);
+    free(value);
+  }
+  if (dtag_complete(block) != DTAG_OK) {
+    print_error("Failed to complete dtag block");
+    free(block);
+    return EXIT_FAILURE;
+  }
+  if (dtag_export_file(block, filename) != DTAG_OK) {
+    print_error("Failed to export dtag block");
+    free(block);
+    return EXIT_FAILURE;
+  }
+  free(block);
+  return EXIT_SUCCESS;
+}
+
+int subcmd_getf(const char *filename, const char *tokens[]) {
+  dblock_t *block = NULL;
+  int32_t ret = dtag_import_file(&block, filename);
+  if (ret != DTAG_OK) {
+    print_error("Failed to import dtag block");
+    return EXIT_FAILURE;
+  }
+  token_iter_t it;
+  token_iter_init(&it, tokens);
+  while (token_iter_top(&it)) {
+    const char *tag_str = token_iter_pop(&it);
+    const char *file = token_iter_pop(&it);
+    if (!file) {
+      print_error("Missing file");
+      free(block);
+      return EXIT_FAILURE;
+    }
+    dtag_t tag = strtoul(tag_str, NULL, 0);
+    const ditem_t *item = dtag_get(block, tag);
+    if (item) {
+      FILE *f = fopen(file, "wb");
+      if (!f) {
+        print_error("Failed to open file");
+        free(block);
+        return EXIT_FAILURE;
+      }
+      if (fwrite(item->val, 1, item->len, f) != item->len) {
+        print_error("Failed to write file");
+        fclose(f);
+        free(block);
+        return EXIT_FAILURE;
+      }
+      fclose(f);
     } else {
       print_error("Tag not found");
     }
@@ -336,6 +439,12 @@ int main(int argc, char *argv[]) {
   }
   if (!strcmp(operation, "get")) {
     return subcmd_get(filename, (const char **)&argv[3]);
+  }
+  if (!strcmp(operation, "setf")) {
+    return subcmd_setf(filename, (const char **)&argv[3]);
+  }
+  if (!strcmp(operation, "getf")) {
+    return subcmd_getf(filename, (const char **)&argv[3]);
   }
   if (!strcmp(operation, "del")) {
     return subcmd_del(filename, (const char **)&argv[3]);
