@@ -1,18 +1,18 @@
 /*
  * MIT License
- * 
+ *
  * Copyright 2025 Kioz Wang <kioz.wang@gmail.com>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -70,24 +70,25 @@ void test_dtag_import_checksum_error() {
 }
 
 void test_dtag_get_set_del() {
+  dtag_t tag = 0x01;
   uint8_t buffer[1024];
   dblock_t *block = NULL;
   dtag_init(&block, buffer, sizeof(buffer));
 
   uint8_t value[] = {1, 2, 3, 4};
-  int32_t result = dtag_set(block, DTAG_PCBASN, sizeof(value), value);
+  int32_t result = dtag_set(block, tag, sizeof(value), value);
   assert(result == DTAG_OK);
 
-  const ditem_t *item = dtag_get(block, DTAG_PCBASN);
+  const ditem_t *item = dtag_get(block, tag);
   assert(item != NULL);
-  assert(item->tag == DTAG_PCBASN);
+  assert(item->tag == tag);
   assert(item->len == sizeof(value));
   assert(memcmp(item->val, value, sizeof(value)) == 0);
 
-  result = dtag_del(block, DTAG_PCBASN);
+  result = dtag_del(block, tag);
   assert(result == DTAG_OK);
 
-  item = dtag_get(block, DTAG_PCBASN);
+  item = dtag_get(block, tag);
   assert(item == NULL);
 }
 

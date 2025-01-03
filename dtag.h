@@ -44,12 +44,6 @@ enum dtag_error {
 };
 typedef int32_t dtag_error_t;
 
-enum dtag {
-  DTAG_PCBASN = 0x01,
-  DTAG_CHALLENGE = 0x02,
-  DTAG_XXXX,
-  DTAG_MD5SUM = 0xFE,
-};
 typedef uint8_t dtag_t;
 
 struct dtag_item {
