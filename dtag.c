@@ -91,9 +91,8 @@ int32_t dtag_import(dblock_t **block, uint8_t *buf, uint32_t len) {
   return result;
 }
 
-int32_t dtag_complete(dblock_t *block) {
+void dtag_complete(dblock_t *block) {
   chksum_compute(block->data, block->length, block->chksum);
-  return DTAG_OK;
 }
 
 int32_t dtag_import_file(dblock_t **block, const char *filename) {

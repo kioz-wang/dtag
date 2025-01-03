@@ -69,14 +69,6 @@ void test_dtag_import_checksum_error() {
   assert(result == DTAG_ERR_CHECKSUM);
 }
 
-void test_dtag_complete() {
-  uint8_t buffer[1024];
-  dblock_t *block = NULL;
-  dtag_init(&block, buffer, sizeof(buffer));
-  int32_t result = dtag_complete(block);
-  assert(result == DTAG_OK);
-}
-
 void test_dtag_get_set_del() {
   uint8_t buffer[1024];
   dblock_t *block = NULL;
@@ -103,7 +95,6 @@ int main() {
   test_dtag_init();
   test_dtag_import();
   test_dtag_import_checksum_error();
-  test_dtag_complete();
   test_dtag_get_set_del();
   printf("All tests passed.\n");
   return 0;

@@ -78,7 +78,7 @@ extern int32_t dtag_init(dblock_t **block, uint8_t *buf, uint32_t len);
 
 extern int32_t dtag_import(dblock_t **block, uint8_t *buf, uint32_t len);
 
-extern int32_t dtag_complete(dblock_t *block);
+extern void dtag_complete(dblock_t *block);
 
 extern int32_t dtag_import_file(dblock_t **block, const char *filename);
 

@@ -85,11 +85,7 @@ int subcmd_init(const char *filename, const char *tokens[]) {
     free(buffer);
     return EXIT_FAILURE;
   }
-  if (dtag_complete(block) != DTAG_OK) {
-    print_error("Failed to complete dtag block");
-    free(buffer);
-    return EXIT_FAILURE;
-  }
+  dtag_complete(block);
   if (dtag_export_file(block, filename) != DTAG_OK) {
     print_error("Failed to export dtag block");
     free(buffer);
@@ -166,11 +162,7 @@ int subcmd_set(const char *filename, const char *tokens[]) {
     }
     free(value);
   }
-  if (dtag_complete(block) != DTAG_OK) {
-    print_error("Failed to complete dtag block");
-    free(block);
-    return EXIT_FAILURE;
-  }
+  dtag_complete(block);
   if (dtag_export_file(block, filename) != DTAG_OK) {
     print_error("Failed to export dtag block");
     free(block);
@@ -258,11 +250,7 @@ int subcmd_setf(const char *filename, const char *tokens[]) {
     fclose(f);
     free(value);
   }
-  if (dtag_complete(block) != DTAG_OK) {
-    print_error("Failed to complete dtag block");
-    free(block);
-    return EXIT_FAILURE;
-  }
+  dtag_complete(block);
   if (dtag_export_file(block, filename) != DTAG_OK) {
     print_error("Failed to export dtag block");
     free(block);
@@ -336,11 +324,7 @@ int subcmd_del(const char *filename, const char *tokens[]) {
       return EXIT_FAILURE;
     }
   }
-  if (dtag_complete(block) != DTAG_OK) {
-    print_error("Failed to complete dtag block");
-    free(block);
-    return EXIT_FAILURE;
-  }
+  dtag_complete(block);
   if (dtag_export_file(block, filename) != DTAG_OK) {
     print_error("Failed to export dtag block");
     free(block);
