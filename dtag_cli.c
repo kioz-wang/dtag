@@ -23,6 +23,7 @@
  */
 
 #include "dtag.h"
+#include "logf/logf.h"
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,15 +51,11 @@ void print_usage(const char *prog_name) {
 }
 
 void print_error(const char *message) {
-  fprintf(stderr, COLOR_RED "Error: %s" COLOR_RESET "\n", message);
-}
-
-void print_success(const char *message) {
-  printf(COLOR_GREEN "%s" COLOR_RESET "\n", message);
+  logfE(COLOR_RED "%s" COLOR_RESET, message);
 }
 
 void print_info(const char *message) {
-  printf(COLOR_BLUE "%s" COLOR_RESET "\n", message);
+  logfI(COLOR_GREEN "%s" COLOR_RESET, message);
 }
 
 int subcmd_init(const char *filename, const char *tokens[]) {

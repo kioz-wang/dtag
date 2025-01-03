@@ -1,18 +1,18 @@
 /*
  * MIT License
- * 
+ *
  * Copyright 2025 Kioz Wang <kioz.wang@gmail.com>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,8 @@
  */
 
 #include "dtag.h"
+#include "logf/logf.h"
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,32 +107,43 @@ int32_t dtag_import_file(dblock_t **block, const char *filename) {
 
   if (result == DTAG_OK) {
     if (stat(filename, &st) != 0) {
+      logfE("fail to stat file: %s", filename);
       result = DTAG_ERR_DATA;
     }
   }
   if (result == DTAG_OK) {
     if ((filesize = st.st_size) < sizeof(dblock_t)) {
+      logfE("file size too small: %s", filename);
       result = DTAG_ERR_CAPACITY;
     }
   }
   if (result == DTAG_OK) {
     if (!(file = fopen(filename, "rb"))) {
+      logfE("fail to open file: %s (%d:%s)", filename, errno, strerror(errno));
       result = DTAG_ERR_DATA;
     }
   }
   if (result == DTAG_OK) {
     if (fread(&_block, 1, sizeof(dblock_t), file) != sizeof(dblock_t)) {
+      logfE("fail to read file: %s,%lu", filename, sizeof(dblock_t));
       result = DTAG_ERR_DATA;
     }
   }
   if (result == DTAG_OK) {
     result = _dtag_import_check0(&_block);
+    if (result != DTAG_OK) {
+      logfE("fail to check0 file: %s (%d)", filename, result);
+    }
   }
   if (result == DTAG_OK) {
     result = _dtag_import_check1(&_block, filesize);
+    if (result != DTAG_OK) {
+      logfE("fail to check1 file: %s (%d)", filename, result);
+    }
   }
   if (result == DTAG_OK) {
     if (!(buf = (uint8_t *)malloc(_block.capacity + sizeof(dblock_t)))) {
+      logfE("fail to allocate memory: %lu", _block.capacity + sizeof(dblock_t));
       result = DTAG_ERR_NOMEM;
     }
   }
@@ -138,11 +151,15 @@ int32_t dtag_import_file(dblock_t **block, const char *filename) {
     memcpy(buf, &_block, sizeof(dblock_t));
     if (fread(buf + sizeof(dblock_t), 1, _block.capacity, file) !=
         _block.capacity) {
+      logfE("fail to read file: %s,%d", filename, _block.capacity);
       result = DTAG_ERR_DATA;
     }
   }
   if (result == DTAG_OK) {
     result = _dtag_import_final(block, buf);
+    if (result != DTAG_OK) {
+      logfE("fail to final file: %s (%d)", filename, result);
+    }
   }
 
   if (file) {
@@ -160,10 +177,12 @@ int32_t dtag_export_file(dblock_t *block, const char *filename) {
 
   file = fopen(filename, "wb");
   if (!file) {
+    logfE("fail to open file: %s (%d:%s)", filename, errno, strerror(errno));
     return DTAG_ERR_DATA;
   }
   len = block->capacity + sizeof(dblock_t);
   if (fwrite(block, 1, len, file) != len) {
+    logfE("fail to write file: %s,%d", filename, len);
     fclose(file);
     return DTAG_ERR_DATA;
   }

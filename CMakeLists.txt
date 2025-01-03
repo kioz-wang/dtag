@@ -10,8 +10,9 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/chksum chksum_SOURCE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/token token_SOURCE)
+aux_source_directory(${PROJECT_SOURCE_DIR}/logf logf_SOURCE)
 
-add_library(${PROJECT_NAME} STATIC ${chksum_SOURCE} dtag.c)
+add_library(${PROJECT_NAME} STATIC ${chksum_SOURCE} ${logf_SOURCE} dtag.c)
 target_link_libraries(${PROJECT_NAME} md)
 
 add_executable(${PROJECT_NAME}_cli dtag_cli.c ${token_SOURCE})
