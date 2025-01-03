@@ -28,7 +28,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 int32_t dtag_init(dblock_t **block, uint8_t *buf, uint32_t len) {
   if (len < sizeof(dblock_t)) {
@@ -98,25 +97,11 @@ void dtag_complete(dblock_t *block) {
 }
 
 int32_t dtag_import_file(dblock_t **block, const char *filename) {
-  uint32_t filesize = 0;
   int32_t result = DTAG_OK;
-  struct stat st;
   FILE *file = NULL;
   dblock_t _block;
   uint8_t *buf = NULL;
 
-  if (result == DTAG_OK) {
-    if (stat(filename, &st) != 0) {
-      logfE("fail to stat file: %s", filename);
-      result = DTAG_ERR_DATA;
-    }
-  }
-  if (result == DTAG_OK) {
-    if ((filesize = st.st_size) < sizeof(dblock_t)) {
-      logfE("file size too small: %s", filename);
-      result = DTAG_ERR_CAPACITY;
-    }
-  }
   if (result == DTAG_OK) {
     if (!(file = fopen(filename, "rb"))) {
       logfE("fail to open file: %s (%d:%s)", filename, errno, strerror(errno));
@@ -133,12 +118,6 @@ int32_t dtag_import_file(dblock_t **block, const char *filename) {
     result = _dtag_import_check0(&_block);
     if (result != DTAG_OK) {
       logfE("fail to check0 file: %s (%d)", filename, result);
-    }
-  }
-  if (result == DTAG_OK) {
-    result = _dtag_import_check1(&_block, filesize);
-    if (result != DTAG_OK) {
-      logfE("fail to check1 file: %s (%d)", filename, result);
     }
   }
   if (result == DTAG_OK) {
