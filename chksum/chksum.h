@@ -1,18 +1,18 @@
 /*
  * MIT License
- * 
+ *
  * Copyright 2025 Kioz Wang <kioz.wang@gmail.com>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,14 +25,19 @@
 #ifndef __CHKSUM_H__
 #define __CHKSUM_H__
 
-#include <md5.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#ifdef __LOGGER_CHKSUM_MD5__
+#include <md5.h>
 #define CHKSUM_LENGTH (MD5_DIGEST_LENGTH)
+#else
+#define CHKSUM_LENGTH (0)
+#endif /* __LOGGER_CHKSUM_xx__ */
 
 extern void chksum_compute(const uint8_t *data, size_t length,
-                              uint8_t chksum[CHKSUM_LENGTH]);
+                           uint8_t chksum[CHKSUM_LENGTH]);
 
 #endif /* __CHKSUM_H__ */
