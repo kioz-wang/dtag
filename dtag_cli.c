@@ -1,18 +1,18 @@
 /*
  * MIT License
- * 
+ *
  * Copyright 2025 Kioz Wang <kioz.wang@gmail.com>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
  */
 
 #include "dtag.h"
-#include "logf/logf.h"
+#include "logger/logger.h"
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,12 +50,12 @@ void print_usage(const char *prog_name) {
   printf("  hexdump               - Dump the content like hexdump -C\n");
 }
 
-void print_error(const char *message) {
-  logfE(COLOR_RED "%s" COLOR_RESET, message);
+inline static void print_error(const char *message) {
+  logfE(COLOR_RED "%s" COLOR_RESET "\n", message);
 }
 
-void print_info(const char *message) {
-  logfI(COLOR_GREEN "%s" COLOR_RESET, message);
+inline static void print_info(const char *message) {
+  logfI(COLOR_GREEN "%s" COLOR_RESET "\n", message);
 }
 
 int subcmd_init(const char *filename, const char *tokens[]) {
@@ -135,7 +135,7 @@ int subcmd_set(const char *filename, const char *tokens[]) {
     const char *tag_str = token_iter_pop(&it);
     const char *value_str = token_iter_pop(&it);
     if (!value_str) {
-      print_error("Missing  value");
+      print_error("Missing value");
       free(block);
       return EXIT_FAILURE;
     }

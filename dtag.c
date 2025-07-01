@@ -23,7 +23,7 @@
  */
 
 #include "dtag.h"
-#include "logf/logf.h"
+#include "logger/logger.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>

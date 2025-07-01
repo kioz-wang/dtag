@@ -10,10 +10,11 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/chksum chksum_SOURCE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/token token_SOURCE)
-aux_source_directory(${PROJECT_SOURCE_DIR}/logf logf_SOURCE)
+aux_source_directory(${PROJECT_SOURCE_DIR}/logger logger_SOURCE)
 
-add_library(${PROJECT_NAME} STATIC ${chksum_SOURCE} ${logf_SOURCE} dtag.c)
+add_library(${PROJECT_NAME} STATIC ${chksum_SOURCE} ${logger_SOURCE} dtag.c)
 target_link_libraries(${PROJECT_NAME} md)
+target_compile_definitions(${PROJECT_NAME} PUBLIC __LOGGER_ENV__="log2stderr")
 
 add_executable(${PROJECT_NAME}_cli dtag_cli.c ${token_SOURCE})
 target_link_libraries(${PROJECT_NAME}_cli ${PROJECT_NAME})
