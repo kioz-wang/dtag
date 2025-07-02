@@ -39,14 +39,15 @@
 
 void print_usage(const char *prog_name) {
   printf("Usage: %s <filename> <operation> [...]\n", prog_name);
+  printf("Version %d:\n", DTAG_VERSION);
   printf("Operations:\n");
   printf("  init {capa}           - Initialize an empty file\n");
   printf("  dump                  - Dump the content of file\n");
-  printf("  set {tag} {value} ... - Set tags with the given value\n");
-  printf("  get {tag} ...         - Get the value of the given tags\n");
-  printf("  setf {tag} {file} ... - Set tags with the given files\n");
-  printf("  getf {tag} {file} ... - Get the given tags to files\n");
-  printf("  del {tag} ...         - Delete the given tags\n");
+  printf("  set {key} {value} ... - Set keys with the given value\n");
+  printf("  get {key} ...         - Get the value of the given keys\n");
+  printf("  setf {key} {file} ... - Set keys with the given files\n");
+  printf("  getf {key} {file} ... - Get the given keys to files\n");
+  printf("  del {key} ...         - Delete the given keys\n");
   printf("  hexdump               - Dump the content like hexdump -C\n");
 }
 
@@ -102,17 +103,19 @@ int subcmd_dump(const char *filename) {
     printf(" %02x", block->chksum[i]);
   }
   printf("\n");
-  const ditem_t *item = (const ditem_t *)(block->data);
-  uint8_t *ptr = block->data;
-  uint8_t *end = ptr + block->length;
-  while (ptr < end) {
-    printf("Tag: %02x, Length: %u, Value: ", item->tag, item->len);
-    for (uint32_t i = 0; i < item->len; i++) {
-      printf("%02x ", item->val[i]);
+  for (ditem_t *curr = NULL;;) {
+    int32_t result = dtag_next(block, &curr);
+    if (result != DTAG_OK) {
+      print_error("Failed to next");
+      return EXIT_FAILURE;
+    }
+    if (curr == NULL)
+      break;
+    printf("Tag:%*s, Length: %u, Value: ", curr->klen, curr->kv, curr->vlen);
+    for (uint32_t i = 0; i < curr->vlen; i++) {
+      printf("%02x ", curr->kv[curr->klen + i]);
     }
     printf("\n");
-    ptr += sizeof(ditem_t) + item->len;
-    item = (const ditem_t *)ptr;
   }
   free(block);
   return EXIT_SUCCESS;
@@ -128,14 +131,13 @@ int subcmd_set(const char *filename, const char *tokens[]) {
   token_iter_t it;
   token_iter_init(&it, tokens);
   while (token_iter_top(&it)) {
-    const char *tag_str = token_iter_pop(&it);
+    const char *key_str = token_iter_pop(&it);
     const char *value_str = token_iter_pop(&it);
     if (!value_str) {
       print_error("Missing value");
       free(block);
       return EXIT_FAILURE;
     }
-    dtag_t tag = strtoul(tag_str, NULL, 0);
     uint32_t value_len = strlen(value_str) / 2;
     uint8_t *value = (uint8_t *)malloc(value_len);
     if (!value) {
@@ -147,8 +149,8 @@ int subcmd_set(const char *filename, const char *tokens[]) {
       char byte_str[3] = {value_str[i * 2], value_str[i * 2 + 1], '\0'};
       value[i] = strtoul(byte_str, NULL, 16);
     }
-    if (dtag_set(block, tag, value_len, value) != DTAG_OK) {
-      print_error("Failed to set tag");
+    if (dtag_set(block, key_str, value, value_len) != DTAG_OK) {
+      print_error("Failed to set key");
       free(value);
       free(block);
       return EXIT_FAILURE;
@@ -175,18 +177,22 @@ int subcmd_get(const char *filename, const char *tokens[]) {
   token_iter_t it;
   token_iter_init(&it, tokens);
   while (token_iter_top(&it)) {
-    const char *tag_str = token_iter_pop(&it);
-    dtag_t tag = strtoul(tag_str, NULL, 0);
-    const ditem_t *item = dtag_get(block, tag);
-    if (item) {
-      printf("Tag: %02x, Length: %u, Value: ", item->tag, item->len);
-      for (uint32_t i = 0; i < item->len; i++) {
-        printf("%02x ", item->val[i]);
+    ditem_t *item = NULL;
+    const char *key_str = token_iter_pop(&it);
+    ret = dtag_get_inner(block, key_str, &item);
+    if (ret != DTAG_OK) {
+      if (ret == DTAG_ERR_NOTFOUND) {
+        print_error("Tag not found");
+      } else {
+        print_error("Failed to get_inner");
       }
-      printf("\n");
-    } else {
-      print_error("Tag not found");
+      return EXIT_FAILURE;
     }
+    printf("Tag:%*s, Length: %u, Value: ", item->klen, item->kv, item->vlen);
+    for (uint32_t i = 0; i < item->vlen; i++) {
+      printf("%02x ", item->kv[item->klen + i]);
+    }
+    printf("\n");
   }
   free(block);
   return EXIT_SUCCESS;
@@ -202,14 +208,13 @@ int subcmd_setf(const char *filename, const char *tokens[]) {
   token_iter_t it;
   token_iter_init(&it, tokens);
   while (token_iter_top(&it)) {
-    const char *tag_str = token_iter_pop(&it);
+    const char *key_str = token_iter_pop(&it);
     const char *file = token_iter_pop(&it);
     if (!file) {
       print_error("Missing file");
       free(block);
       return EXIT_FAILURE;
     }
-    dtag_t tag = strtoul(tag_str, NULL, 0);
     FILE *f = fopen(file, "rb");
     if (!f) {
       print_error("Failed to open file");
@@ -233,8 +238,8 @@ int subcmd_setf(const char *filename, const char *tokens[]) {
       free(block);
       return EXIT_FAILURE;
     }
-    if (dtag_set(block, tag, len, value) != DTAG_OK) {
-      print_error("Failed to set tag");
+    if (dtag_set(block, key_str, value, len) != DTAG_OK) {
+      print_error("Failed to set key");
       fclose(f);
       free(value);
       free(block);
@@ -263,32 +268,37 @@ int subcmd_getf(const char *filename, const char *tokens[]) {
   token_iter_t it;
   token_iter_init(&it, tokens);
   while (token_iter_top(&it)) {
-    const char *tag_str = token_iter_pop(&it);
+    ditem_t *item = NULL;
+    const char *key_str = token_iter_pop(&it);
     const char *file = token_iter_pop(&it);
     if (!file) {
       print_error("Missing file");
       free(block);
       return EXIT_FAILURE;
     }
-    dtag_t tag = strtoul(tag_str, NULL, 0);
-    const ditem_t *item = dtag_get(block, tag);
-    if (item) {
-      FILE *f = fopen(file, "wb");
-      if (!f) {
-        print_error("Failed to open file");
-        free(block);
-        return EXIT_FAILURE;
+    ret = dtag_get_inner(block, key_str, &item);
+    if (ret != DTAG_OK) {
+      if (ret == DTAG_ERR_NOTFOUND) {
+        print_error("Tag not found");
+      } else {
+        print_error("Failed to get_inner");
       }
-      if (fwrite(item->val, 1, item->len, f) != item->len) {
-        print_error("Failed to write file");
-        fclose(f);
-        free(block);
-        return EXIT_FAILURE;
-      }
-      fclose(f);
-    } else {
-      print_error("Tag not found");
+      free(block);
+      return EXIT_FAILURE;
     }
+    FILE *f = fopen(file, "wb");
+    if (!f) {
+      print_error("Failed to open file");
+      free(block);
+      return EXIT_FAILURE;
+    }
+    if (fwrite(&item->kv[item->klen], 1, item->vlen, f) != item->vlen) {
+      print_error("Failed to write file");
+      fclose(f);
+      free(block);
+      return EXIT_FAILURE;
+    }
+    fclose(f);
   }
   free(block);
   return EXIT_SUCCESS;
@@ -304,15 +314,14 @@ int subcmd_del(const char *filename, const char *tokens[]) {
   token_iter_t it;
   token_iter_init(&it, tokens);
   while (token_iter_top(&it)) {
-    const char *tag_str = token_iter_pop(&it);
-    if (!tag_str) {
+    const char *key_str = token_iter_pop(&it);
+    if (!key_str) {
       print_error("Missing tag");
       free(block);
       return EXIT_FAILURE;
     }
-    dtag_t tag = strtoul(tag_str, NULL, 0);
-    if (dtag_del(block, tag) != DTAG_OK) {
-      print_error("Failed to delete tag");
+    if (dtag_del(block, key_str) != DTAG_OK) {
+      print_error("Failed to delete key");
       free(block);
       return EXIT_FAILURE;
     }
@@ -381,15 +390,17 @@ int subcmd_hexdump(const char *filename) {
         } else {
           if (item == NULL) {
             item = (ditem_t *)(block->data);
-          } else if (ptr + i + j == (uint8_t *)item->val + item->len) {
-            item = (ditem_t *)((uint8_t *)item->val + item->len);
+          } else if (ptr + i + j == (uint8_t *)item->kv + item->klen + item->vlen) {
+            item = (ditem_t *)((uint8_t *)item->kv + item->klen + item->vlen);
           }
-          if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, tag) + sizeof(item->tag)) {
+          if (ptr + i + j < (uint8_t *)item + 1) {
             printf(COLOR_CYAN "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, len) + sizeof(item->len)) {
+          } else if (ptr + i + j < (uint8_t *)item + 4) {
             printf(COLOR_GREEN "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, val) + item->len) {
+          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, kv) + item->klen) {
             printf(COLOR_YELLOW "%02x " COLOR_RESET, ptr[i + j]);
+          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, kv) + item->klen + item->vlen) {
+            printf(COLOR_BLUE "%02x " COLOR_RESET, ptr[i + j]);
           }
         }
       } else if (ptr + i + j < (uint8_t *)block->data + block->capacity) {

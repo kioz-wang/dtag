@@ -70,26 +70,27 @@ void test_dtag_import_checksum_error() {
 }
 
 void test_dtag_get_set_del() {
-  dtag_t tag = 0x01;
   uint8_t buffer[1024];
   dblock_t *block = NULL;
   dtag_init(&block, buffer, sizeof(buffer));
 
+  const char *key = "key";
   uint8_t value[] = {1, 2, 3, 4};
-  int32_t result = dtag_set(block, tag, sizeof(value), value);
+  int32_t result = dtag_set(block, key, value, sizeof(value));
   assert(result == DTAG_OK);
 
-  const ditem_t *item = dtag_get(block, tag);
-  assert(item != NULL);
-  assert(item->tag == tag);
-  assert(item->len == sizeof(value));
-  assert(memcmp(item->val, value, sizeof(value)) == 0);
+  uint8_t value_get[sizeof(value)];
+  uint32_t value_len = sizeof(value_get);
+  result = dtag_get(block, key, value_get, &value_len);
+  assert(result == DTAG_OK);
+  assert(value_len == sizeof(value_get));
+  assert(memcmp(value_get, value, sizeof(value)) == 0);
 
-  result = dtag_del(block, tag);
+  result = dtag_del(block, key);
   assert(result == DTAG_OK);
 
-  item = dtag_get(block, tag);
-  assert(item == NULL);
+  result = dtag_get(block, key, NULL, NULL);
+  assert(result == DTAG_ERR_NOTFOUND);
 }
 
 int main() {
