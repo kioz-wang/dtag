@@ -9,7 +9,7 @@
 
 static log_level_t g_log_level = LOG_DEBUG;
 
-static void default_logger(const char *msg) { fputs(msg, stderr); }
+static void default_logger(const char *msg) { fputs(msg, stdout); }
 
 static logger_f g_logger = default_logger;
 

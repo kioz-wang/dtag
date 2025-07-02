@@ -212,22 +212,16 @@ int32_t dtag_next(dblock_t *block, ditem_t **curr) {
   }
 
   if (!_dtag_ditem_check1(block, next)) {
+    logfE("detect error @%p klen %u vlen %u", next, next->klen, next->vlen);
     return DTAG_ERR_DATA;
   }
   *curr = next;
   return 0;
 }
 
-/**
- * @brief
- *
- * @param block
- * @param key 会检查合法性（满足 `DTAG_MAX_KLEN`）
- * @param item 成功找到时，指向 `ditem`；可以传入 NULL，此时仅判定存在性
- * @return * int32_t 成功找到时，返回 DTAG_OK
- */
 int32_t dtag_get_inner(dblock_t *block, const char *key, ditem_t **item) {
-  if (strnlen(key, DTAG_MAX_KLEN) == DTAG_MAX_KLEN) {
+  uint32_t klen = strnlen(key, DTAG_MAX_KLEN);
+  if (klen == DTAG_MAX_KLEN) {
     return DTAG_ERR_INVPARAM;
   }
 
@@ -237,7 +231,7 @@ int32_t dtag_get_inner(dblock_t *block, const char *key, ditem_t **item) {
       return result;
     if (curr == NULL)
       return DTAG_ERR_NOTFOUND;
-    if (strnlen(key, DTAG_MAX_KLEN) != curr->klen - 1)
+    if (klen != curr->klen - 1)
       continue;
     if (strcmp(key, (const char *)curr->kv))
       continue;
