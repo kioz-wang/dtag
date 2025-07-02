@@ -32,15 +32,16 @@ enum dtag_error {
   DTAG_OK = 0,
   DTAG_ERR_MAGIC = -1,
   DTAG_ERR_VERSION = -2,
-  DTAG_ERR_CAPACITY = -3,
-  DTAG_ERR_LENGTH = -4,
-  DTAG_ERR_CHECKSUM = -5,
-  DTAG_ERR_TAG = -6,
-  DTAG_ERR_LEN = -7,
-  DTAG_ERR_DATA = -8,
-  DTAG_ERR_NOMEM = -9,
-  DTAG_ERR_EXIST = -10,
-  DTAG_ERR_NOTFOUND = -11,
+  DTAG_ERR_CHKSUM_LEN = -3,
+  DTAG_ERR_CAPACITY = -4,
+  DTAG_ERR_LENGTH = -5,
+  DTAG_ERR_CHECKSUM = -6,
+  DTAG_ERR_TAG = -7,
+  DTAG_ERR_LEN = -8,
+  DTAG_ERR_DATA = -9,
+  DTAG_ERR_NOMEM = -10,
+  DTAG_ERR_EXIST = -11,
+  DTAG_ERR_NOTFOUND = -12,
 };
 typedef int32_t dtag_error_t;
 
@@ -56,8 +57,10 @@ typedef struct dtag_item ditem_t;
 struct dtag_block {
 #define DTAG_MAGIC 0x44544147
   uint32_t magic;
-#define DTAG_VERSION 0x01
-  uint32_t version;
+#define DTAG_VERSION 0x02
+  uint16_t version;
+  // Fixed as CHKSUM_LENGTH
+  uint16_t chksum_length;
   // The capacity of the data in bytes.
   uint32_t capacity;
   // The length of the data in bytes.

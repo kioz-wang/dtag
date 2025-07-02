@@ -37,6 +37,7 @@ int32_t dtag_init(dblock_t **block, uint8_t *buf, uint32_t len) {
 
   _block->magic = DTAG_MAGIC;
   _block->version = DTAG_VERSION;
+  _block->chksum_length = CHKSUM_LENGTH;
   _block->capacity = len - sizeof(dblock_t);
   _block->length = 0;
   *block = _block;
@@ -49,6 +50,9 @@ static int32_t _dtag_import_check0(const dblock_t *block) {
   }
   if (block->version != DTAG_VERSION) {
     return DTAG_ERR_VERSION;
+  }
+  if (block->chksum_length != CHKSUM_LENGTH) {
+    return DTAG_ERR_CHKSUM_LEN;
   }
   if (block->length > block->capacity) {
     return DTAG_ERR_LENGTH;
@@ -65,12 +69,13 @@ static int32_t _dtag_import_check1(const dblock_t *block, uint32_t len) {
 
 static int32_t _dtag_import_final(dblock_t **block, uint8_t *buf) {
   dblock_t *_block = (dblock_t *)buf;
+#if CHKSUM_LENGTH != 0
   uint8_t _chksum[CHKSUM_LENGTH];
-
   chksum_compute(_block->data, _block->length, _chksum);
   if (memcmp(_chksum, _block->chksum, CHKSUM_LENGTH) != 0) {
     return DTAG_ERR_CHECKSUM;
   }
+#endif
   *block = _block;
   return DTAG_OK;
 }
@@ -93,7 +98,9 @@ int32_t dtag_import(dblock_t **block, uint8_t *buf, uint32_t len) {
 }
 
 void dtag_complete(dblock_t *block) {
+#if CHKSUM_LENGTH != 0
   chksum_compute(block->data, block->length, block->chksum);
+#endif
 }
 
 int32_t dtag_import_file(dblock_t **block, const char *filename) {

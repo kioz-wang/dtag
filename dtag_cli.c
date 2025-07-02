@@ -50,13 +50,9 @@ void print_usage(const char *prog_name) {
   printf("  hexdump               - Dump the content like hexdump -C\n");
 }
 
-inline static void print_error(const char *message) {
-  logfE(COLOR_RED "%s" COLOR_RESET "\n", message);
-}
+inline static void print_error(const char *message) { logfE(COLOR_RED "%s" COLOR_RESET, message); }
 
-inline static void print_info(const char *message) {
-  logfI(COLOR_GREEN "%s" COLOR_RESET "\n", message);
-}
+inline static void print_info(const char *message) { logfI(COLOR_GREEN "%s" COLOR_RESET, message); }
 
 int subcmd_init(const char *filename, const char *tokens[]) {
   token_iter_t it;
@@ -369,17 +365,15 @@ int subcmd_hexdump(const char *filename) {
         if (i + j < sizeof(dblock_t)) {
           if (i + j < offsetof(dblock_t, magic) + sizeof(block->magic)) {
             printf(COLOR_CYAN "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (i + j <
-                     offsetof(dblock_t, version) + sizeof(block->version)) {
+          } else if (i + j < offsetof(dblock_t, version) + sizeof(block->version)) {
             printf(COLOR_GREEN "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (i + j <
-                     offsetof(dblock_t, capacity) + sizeof(block->capacity)) {
+          } else if (i + j < offsetof(dblock_t, chksum_length) + sizeof(block->chksum_length)) {
+            printf(COLOR_RED "%02x " COLOR_RESET, ptr[i + j]);
+          } else if (i + j < offsetof(dblock_t, capacity) + sizeof(block->capacity)) {
             printf(COLOR_YELLOW "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (i + j <
-                     offsetof(dblock_t, length) + sizeof(block->length)) {
+          } else if (i + j < offsetof(dblock_t, length) + sizeof(block->length)) {
             printf(COLOR_BLUE "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (i + j <
-                     offsetof(dblock_t, chksum) + sizeof(block->chksum)) {
+          } else if (i + j < offsetof(dblock_t, chksum) + sizeof(block->chksum)) {
             printf(COLOR_RED "%02x " COLOR_RESET, ptr[i + j]);
           } else {
             printf("%02x ", ptr[i + j]);
@@ -390,14 +384,11 @@ int subcmd_hexdump(const char *filename) {
           } else if (ptr + i + j == (uint8_t *)item->val + item->len) {
             item = (ditem_t *)((uint8_t *)item->val + item->len);
           }
-          if (ptr + i + j <
-              (uint8_t *)item + offsetof(ditem_t, tag) + sizeof(item->tag)) {
+          if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, tag) + sizeof(item->tag)) {
             printf(COLOR_CYAN "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, len) +
-                                       sizeof(item->len)) {
+          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, len) + sizeof(item->len)) {
             printf(COLOR_GREEN "%02x " COLOR_RESET, ptr[i + j]);
-          } else if (ptr + i + j <
-                     (uint8_t *)item + offsetof(ditem_t, val) + item->len) {
+          } else if (ptr + i + j < (uint8_t *)item + offsetof(ditem_t, val) + item->len) {
             printf(COLOR_YELLOW "%02x " COLOR_RESET, ptr[i + j]);
           }
         }
