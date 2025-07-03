@@ -30,7 +30,7 @@
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifdef __LOGGER_CHKSUM_MD5__
+#ifdef __CHKSUM_MD5__
 #include <md5.h>
 #define CHKSUM_LENGTH (MD5_DIGEST_LENGTH)
 #else

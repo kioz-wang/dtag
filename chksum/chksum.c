@@ -28,7 +28,7 @@
 
 void chksum_compute(const uint8_t *data, size_t length,
                     uint8_t chksum[CHKSUM_LENGTH]) {
-#ifdef __LOGGER_CHKSUM_MD5__
+#ifdef __CHKSUM_MD5__
   MD5_CTX ctx;
   MD5Init(&ctx);
   MD5Update(&ctx, data, length);

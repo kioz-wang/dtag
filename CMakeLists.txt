@@ -16,7 +16,7 @@ add_library(${PROJECT_NAME} STATIC ${chksum_SOURCE} ${logger_SOURCE} dtag.c)
 target_link_libraries(${PROJECT_NAME} md)
 target_compile_definitions(${PROJECT_NAME} PUBLIC 
     __LOGGER_ENV__="log2stderr"
-    __LOGGER_CHKSUM_MD5__
+    __CHKSUM_MD5__
 )
 
 add_executable(${PROJECT_NAME}_cli dtag_cli.c ${token_SOURCE})
