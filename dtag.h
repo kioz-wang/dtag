@@ -28,6 +28,10 @@
 #include "chksum/chksum.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum dtag_error {
   DTAG_OK = 0,
   DTAG_ERR_MAGIC = -1,
@@ -158,5 +162,9 @@ extern int32_t dtag_del(dblock_t *block, const char *key);
  * @return * int32_t
  */
 extern int32_t dtag_set(dblock_t *block, const char *key, const uint8_t *val, uint32_t len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __DTAG_H__

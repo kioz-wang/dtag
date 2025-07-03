@@ -1,11 +1,11 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
 
 enum log_level {
   LOG_ERROR,
