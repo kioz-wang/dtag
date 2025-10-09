@@ -16,6 +16,7 @@ add_library(${PROJECT_NAME} STATIC ${chksum_SOURCE} ${logger_SOURCE} dtag.c)
 target_link_libraries(${PROJECT_NAME} md)
 target_compile_definitions(${PROJECT_NAME} PUBLIC 
     __LOGGER_ENV__="log2stderr"
+    __LOGGER_PREFIX__=dtag_
     __CHKSUM_MD5__
 )
 
